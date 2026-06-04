@@ -2,7 +2,6 @@
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
-import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_jotform_suppression.dart';
 
@@ -46,39 +45,49 @@ Future<T> tracedJotform<T>({
   final t = tracer ?? OTel.tracerProvider().getTracer('otel_jotform');
   final span = t.startSpan('jotform $operation', kind: SpanKind.client);
   try {
-    span.setStringAttribute('rpc.system', 'jotform');
+    span.addAttributes(
+        OTel.attributes([OTel.attributeString('rpc.system', 'jotform')]));
     final r = await invoke();
     final res = r.result;
     if (res != null) {
       if (res.accountId != null) {
-        span.setStringAttribute('jotform.account.id', res.accountId!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('jotform.account.id', res.accountId!)]));
       }
       if (res.formId != null) {
-        span.setStringAttribute('jotform.form.id', res.formId!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('jotform.form.id', res.formId!)]));
       }
       if (res.formTitle != null) {
-        span.setStringAttribute('jotform.form.title', res.formTitle!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('jotform.form.title', res.formTitle!)]));
       }
       if (res.submissionId != null) {
-        span.setStringAttribute('jotform.submission.id', res.submissionId!);
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString('jotform.submission.id', res.submissionId!)
+        ]));
       }
       if (res.status != null) {
-        span.setStringAttribute('jotform.submission.status', res.status!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('jotform.submission.status', res.status!)]));
       }
       if (res.statusCode != null) {
-        span.setIntAttribute('http.response.status_code', res.statusCode!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeInt('http.response.status_code', res.statusCode!)]));
       }
       if (res.errorCode != null) {
-        span.setStringAttribute('jotform.error.code', res.errorCode!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('jotform.error.code', res.errorCode!)]));
       }
-      final fail =
-          res.errorCode != null ||
+      final fail = res.errorCode != null ||
           (res.statusCode != null && res.statusCode! >= 400);
       if (fail) {
-        span.setStringAttribute(
-          ErrorResource.errorType.key,
-          res.errorCode ?? 'jotform.error',
-        );
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString(
+            ErrorResource.errorType.key,
+            res.errorCode ?? 'jotform.error',
+          )
+        ]));
         span.setStatus(SpanStatusCode.Error, res.errorMessage);
       }
     }
