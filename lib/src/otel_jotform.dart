@@ -1,11 +1,12 @@
-// Licensed under the Dartastic Pro Software License Agreement.
+// Licensed under the Apache License, Version 2.0
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_jotform_suppression.dart';
 
 class JotformResult {
+  /// Creates a result.
   const JotformResult({
     this.accountId,
     this.formId,
@@ -27,8 +28,13 @@ class JotformResult {
   final String? errorMessage;
 }
 
+/// What a traced call returned: the value for the caller plus fields
+/// recorded on the span.
 class JotformCallResult<T> {
+  /// Creates a call result.
   const JotformCallResult({required this.value, this.result});
+
+  /// The value returned to the caller.
   final T value;
   final JotformResult? result;
 }
@@ -36,55 +42,57 @@ class JotformCallResult<T> {
 Future<T> tracedJotform<T>({
   required String operation,
   required Future<JotformCallResult<T>> Function() invoke,
-  Tracer? tracer,
+  APITracer? tracer,
 }) async {
   if (jotformInstrumentationSuppressed()) {
     final r = await invoke();
     return r.value;
   }
-  final t = tracer ?? OTel.tracerProvider().getTracer('otel_jotform');
+  final t = tracer ?? OTelAPI.tracerProvider().getTracer('otel_jotform');
   final span = t.startSpan('jotform $operation', kind: SpanKind.client);
   try {
     span.addAttributes(
-        OTel.attributes([OTel.attributeString('rpc.system', 'jotform')]));
+        OTelAPI.attributes([OTelAPI.attributeString('rpc.system', 'jotform')]));
     final r = await invoke();
     final res = r.result;
     if (res != null) {
       if (res.accountId != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('jotform.account.id', res.accountId!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('jotform.account.id', res.accountId!)]));
       }
       if (res.formId != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('jotform.form.id', res.formId!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('jotform.form.id', res.formId!)]));
       }
       if (res.formTitle != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('jotform.form.title', res.formTitle!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('jotform.form.title', res.formTitle!)]));
       }
       if (res.submissionId != null) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString('jotform.submission.id', res.submissionId!)
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString('jotform.submission.id', res.submissionId!)
         ]));
       }
       if (res.status != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('jotform.submission.status', res.status!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString('jotform.submission.status', res.status!)
+        ]));
       }
       if (res.statusCode != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeInt('http.response.status_code', res.statusCode!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeInt('http.response.status_code', res.statusCode!)
+        ]));
       }
       if (res.errorCode != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('jotform.error.code', res.errorCode!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('jotform.error.code', res.errorCode!)]));
       }
       final fail = res.errorCode != null ||
           (res.statusCode != null && res.statusCode! >= 400);
       if (fail) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString(
-            ErrorResource.errorType.key,
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString(
+            ErrorAttributes.errorType.key,
             res.errorCode ?? 'jotform.error',
           )
         ]));
